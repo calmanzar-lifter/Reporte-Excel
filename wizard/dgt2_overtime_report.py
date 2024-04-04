@@ -21,10 +21,9 @@ class OvertimeReportWizard(models.TransientModel):
     def generate_report(self):
         slip_ids = self.env['hr.payslip'].search(
             [('payslip_run_id', 'in', self.payslip_run_ids.ids), ('company_id', '=?', self.company_id.id)])
-        categories = self.env['hr.salary.rule.category'].search(
-            [('code', '=', 'BASIC')])
         rules = self.env['hr.salary.rule'].search(
-            [('category_id', 'in', categories.ids)])
+            [('code', '=', 'DQ3BASIC')])
+        #salary_hist = self.env['payslip.historic.salary.contract'].search([('salario', '>', 0)])
 
         title = f'{TITLE} - {self.company_id.name}'
 
@@ -48,7 +47,7 @@ class OvertimeReportWizard(models.TransientModel):
         row_num = 1
 
         for payslip in slip_ids:
-            if payslip.net_wage < 0.0:
+            if payslip.salario_neto < 0.0:
                 continue
 
             for line in payslip.line_ids:
@@ -57,16 +56,17 @@ class OvertimeReportWizard(models.TransientModel):
                     worksheet.write(
                         row_num, 1, payslip.employee_id.identification_id)
                     worksheet.write(
-                        row_num, 2, line.date_to.strftime('%Y-%m-%d'))
-                    worksheet.write(row_num, 3, line.net_wage)
+                        row_num, 2, payslip.employee_id.certificate)
+                    worksheet.write(row_num, 3, payslip.contract_id.wage)
+
 
                     row_num += 1
-                    total_amount += line.net_wage
+                    #total_amount += payslip.salario_neto
 
-        worksheet.write(row_num, 0, 'Total', total_style)
-        worksheet.write(row_num, 1, '', total_style)
-        worksheet.write(row_num, 2, '', total_style)
-        worksheet.write(row_num, 3, total_amount, total_style)
+        #worksheet.write(row_num, 0, 'Total', total_style)
+        #worksheet.write(row_num, 1, '', total_style)
+        #worksheet.write(row_num, 2, '', total_style)
+        #worksheet.write(row_num, 3, total_amount, total_style)
 
         workbook_data = io.BytesIO()
         workbook.save(workbook_data)
