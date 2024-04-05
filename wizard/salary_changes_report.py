@@ -43,7 +43,8 @@ class SalaryChangesReportWizard(models.TransientModel):
 
         for col_num, header in enumerate(headers):
             worksheet.write(0, col_num, header, header_style)
-            worksheet.col(col_num).width = column_width
+            worksheet.col(
+                col_num).width = column_width if header != 'Salarios Anteriores' else column_width * 3
 
         row_num = 1
 
@@ -51,7 +52,7 @@ class SalaryChangesReportWizard(models.TransientModel):
             salaries = []
             all_salaries_formatted = ''
             for line in slip_line_ids:
-                if line.total not in salaries:
+                if line.employee_id.id == employee.id and line.total not in salaries and line.total != employee.contract_id.wage:
                     salaries.append(line.total)
                     all_salaries_formatted += f"{line.slip_id.date_to.strftime('%d-%m-%Y')}: RD${line.total}, "
 
@@ -60,9 +61,9 @@ class SalaryChangesReportWizard(models.TransientModel):
             worksheet.write(
                 row_num, 2, employee.identification_id or '')
             worksheet.write(
-                row_num, 3, employee.contract_id.wage or '')
+                row_num, 3, f"RD${employee.contract_id.wage}" or '0.0')
             worksheet.write(
-                row_num, 4, all_salaries_formatted[:-2] if all_salaries_formatted else 'N/A')
+                row_num, 4, all_salaries_formatted[:-2] if all_salaries_formatted else '')
 
             row_num += 1
 
