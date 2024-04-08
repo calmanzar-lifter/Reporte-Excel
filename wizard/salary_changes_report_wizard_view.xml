@@ -6,9 +6,9 @@
             <form>
                 <group string="Datos generales">
                     <field name="employee_ids" widget="many2many_tags" class="mt-4"/>
+                    <field name="date_from" class="oe_inline"/>
+                    <field name="date_to" class="oe_inline"/>
                     <field name="company_id" />
-                    <field name="date_from"/>
-                    <field name="date_to"/>
                 </group>
                 <footer>
                     <button name="generate_report" type="object" string="Generar Reporte" class="oe_highlight"/>
