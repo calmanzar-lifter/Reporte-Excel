@@ -1,4 +1,5 @@
-from odoo import models, fields
+from odoo import _, fields, models
+from odoo.exceptions import UserError
 import xlwt
 import base64
 import io
@@ -18,11 +19,13 @@ class SalaryChangesReportWizard(models.TransientModel):
     employee_ids = fields.Many2many('hr.employee',
                                     string="Empleados Incluidos", domain="[('company_id', '=?', company_id)]")
 
-    date_from = fields.Date(string="Desde")
+    date_from = fields.Date(string="Fecha desde")
 
-    date_to = fields.Date(string="Hasta")
+    date_to = fields.Date(string="Fecha hasta")
 
     def generate_report(self):
+        self.validate_date()
+
         slip_line_ids = self.env['hr.payslip.line'].search([
             ('slip_id.employee_id', 'in', self.employee_ids.ids),
             ('slip_id.company_id', '=?', self.company_id.id),
@@ -47,6 +50,12 @@ class SalaryChangesReportWizard(models.TransientModel):
         headers = ['Contrato', 'Empleado', 'Cédula',
                    'Salario Actual', 'Salarios Anteriores']
 
+        if self.date_from:
+            headers.append('Fecha Desde')
+
+        if self.date_to:
+            headers.append('Fecha Hasta')
+
         for col_num, header in enumerate(headers):
             worksheet.write(0, col_num, header, header_style)
             worksheet.col(
@@ -67,13 +76,15 @@ class SalaryChangesReportWizard(models.TransientModel):
             worksheet.write(
                 row_num, 2, employee.identification_id or '')
             worksheet.write(
-                row_num, 3, self.date_from.strftime('%d-%m-%Y'))
+                row_num, 3, f"RD${employee.contract_id.wage}" or '0.0')
             worksheet.write(
-                row_num, 4, self.date_to.strftime('%d-%m-%Y'))
-            worksheet.write(
-                row_num, 5, f"RD${employee.contract_id.wage}" or '0.0')
-            worksheet.write(
-                row_num, 6, all_salaries_formatted[:-2] if all_salaries_formatted else '')
+                row_num, 4, all_salaries_formatted[:-2] if all_salaries_formatted else '')
+            if self.date_from:
+                worksheet.write(
+                    row_num, 5, self.date_from.strftime('%d-%m-%Y'))
+            if self.date_to:
+                worksheet.write(
+                    row_num, 6 if self.date_from else 5, self.date_to.strftime('%d-%m-%Y'))
 
             row_num += 1
 
@@ -96,3 +107,8 @@ class SalaryChangesReportWizard(models.TransientModel):
             'url': f'/web/content/{attachement.id}?download=true',
             'target': 'self'
         }
+
+    def validate_date(self):
+        if self.date_from and self.date_to and self.date_from > self.date_to:
+            raise UserError(
+                _('El campo "Fecha desde" debe ser menor o igual al campo "Fecha hasta"'))
