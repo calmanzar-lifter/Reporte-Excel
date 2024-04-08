@@ -18,6 +18,10 @@ class SalaryChangesReportWizard(models.TransientModel):
     employee_ids = fields.Many2many('hr.employee',
                                     string="Empleados Incluidos", domain="[('company_id', '=?', company_id)]")
 
+    date_from = fields.Date(string="Desde")
+
+    date_to = fields.Date(string="Hasta")
+
     def generate_report(self):
         slip_line_ids = self.env['hr.payslip.line'].search([
             ('slip_id.employee_id', 'in', self.employee_ids.ids),
@@ -26,6 +30,8 @@ class SalaryChangesReportWizard(models.TransientModel):
             ('slip_id.state', '=', 'done'),
             ('slip_id.net_wage', '>', '0'),
             ('total', '>', '0'),
+            ('slip_id.date_from', '>=', self.date_from),
+            ('slip_id.date_to', '<=', self.date_to),
         ])
 
         title = f'{TITLE} - {self.company_id.name}'
@@ -61,9 +67,13 @@ class SalaryChangesReportWizard(models.TransientModel):
             worksheet.write(
                 row_num, 2, employee.identification_id or '')
             worksheet.write(
-                row_num, 3, f"RD${employee.contract_id.wage}" or '0.0')
+                row_num, 3, self.date_from.strftime('%d-%m-%Y'))
             worksheet.write(
-                row_num, 4, all_salaries_formatted[:-2] if all_salaries_formatted else '')
+                row_num, 4, self.date_to.strftime('%d-%m-%Y'))
+            worksheet.write(
+                row_num, 5, f"RD${employee.contract_id.wage}" or '0.0')
+            worksheet.write(
+                row_num, 6, all_salaries_formatted[:-2] if all_salaries_formatted else '')
 
             row_num += 1
 
